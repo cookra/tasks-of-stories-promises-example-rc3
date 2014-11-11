@@ -5,7 +5,7 @@ Ext.define('Rally.example.CollectionPromises', {
         var today = new Date().toISOString();
         var stories = Ext.create('Rally.data.wsapi.Store', {
             model: 'UserStory',
-            fetch: ['Tasks'],
+            fetch: ['Tasks','Owner'],
             filters: [
                 {
                     property: 'Iteration.StartDate',
@@ -24,21 +24,21 @@ Ext.define('Rally.example.CollectionPromises', {
             scope: this
         }).then({
             success:function(results) {
+                console.log('results', results);
                 that.makeGrid(results);
             },
             failure: function(){
-                console.log("oh noes!")
+                console.log("oh noes!");
             }
         });
     },
     
     loadTasks: function(stories){
-        console.log("load tasks",stories)
         var promises = [];
         _.each(stories, function(story){
             var tasks = story.get('Tasks');
             if (tasks.Count > 0) {
-                tasks.store = story.getCollection('Tasks',{fetch:['Name','FormattedID','Estimate','State','Blocked','WorkProduct']});
+                tasks.store = story.getCollection('Tasks',{fetch:['Name','FormattedID','Estimate', 'Actuals','Owner','State','Blocked','WorkProduct'],filters:{property: 'State',operator: '>',value: 'Defined'}});
                 promises.push(tasks.store.load());
             }
         });
@@ -51,11 +51,11 @@ Ext.define('Rally.example.CollectionPromises', {
         var data = [];
         _.each(tasks, function(task){
             data.push(task.data);
-        })
+        });
         
         _.each(data, function(record){
-            record.Story = record.WorkProduct.FormattedID + " " + record.WorkProduct.Name;;
-        })
+            record.Story = record.WorkProduct.FormattedID + " " + record.WorkProduct.Name;
+        });
 
         
         this.add({
@@ -65,7 +65,7 @@ Ext.define('Rally.example.CollectionPromises', {
             editable: false,
             store: Ext.create('Rally.data.custom.Store', {
                 data: data,
-                groupField: 'Story',
+                groupField: 'Story'
             }),
             features: [{ftype:'groupingsummary'}],
             columnCfgs: [
@@ -73,11 +73,11 @@ Ext.define('Rally.example.CollectionPromises', {
                     xtype: 'templatecolumn',text: 'ID',dataIndex: 'FormattedID',width: 100,
                     tpl: Ext.create('Rally.ui.renderer.template.FormattedIDTemplate'),
                     summaryRenderer: function() {
-                        return "Estimate Total"; 
+                        return "Totals"; 
                     }
                 },
                 {
-                    text: 'Name',dataIndex: 'Name',
+                    text: 'Name',dataIndex: 'Name'
                 },
                 {
                     text: 'State',dataIndex: 'State',xtype: 'templatecolumn',
@@ -91,7 +91,17 @@ Ext.define('Rally.example.CollectionPromises', {
                 },
                 {
                     text: 'Estimate',dataIndex: 'Estimate',
-                    summaryType: 'sum',
+                    summaryType: 'sum'
+                },
+                {
+                    text: 'Actuals',dataIndex: 'Actuals',
+                    summaryType: 'sum'
+                },
+                {
+                    text: 'Task Owner',dataIndex: 'Owner',
+                    renderer: function(val,meta,record){
+                        return (record.get('Owner')) ? record.get('Owner')._refObjectName : 'None';
+                    }
                 },
                 {
                     text: 'WorkProduct',dataIndex: 'WorkProduct',
@@ -99,6 +109,12 @@ Ext.define('Rally.example.CollectionPromises', {
                         return '<a href="https://rally1.rallydev.com/#/detail/userstory/' + record.get('WorkProduct').ObjectID + '" target="_blank">' + record.get('WorkProduct').FormattedID + '</a>';
                     }
                 },
+                {
+                    text: 'Story Owner',dataIndex: 'WorkProduct',
+                    renderer: function(val, meta, record) {
+                        return (record.get('WorkProduct').Owner) ? record.get('WorkProduct').Owner._refObjectName : 'None';
+                    }
+                }
             ]
         });
         

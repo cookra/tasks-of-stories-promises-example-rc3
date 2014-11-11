@@ -4,6 +4,9 @@ tasks of stories in current iteration
 
 ![](pic.png)
 
+The app was further modified to include Actuals and Owners of Tasks and Stories:
+
+![](pic2.png)
 
 This app is available on an as-is basis. It is not supported by Rally support.
 
